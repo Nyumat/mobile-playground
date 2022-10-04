@@ -1,140 +1,54 @@
-import { Asset } from "expo-asset";
-import Constants from "expo-constants";
-import * as SplashScreen from "expo-splash-screen";
-import * as Updates from "expo-updates";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Animated,
-  Button,
-  Platform,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+// Option - Shift - O
+import { NavigationContainer } from '@react-navigation/native'
+import { createNativeStackNavigator } from '@react-navigation/native-stack'
+import { registerRootComponent } from 'expo'
+import React, { useState } from 'react'
+import { StyleSheet } from 'react-native'
+import AnimatedSplash from 'react-native-animated-splash-screen'
+import Loader from './components/load/load.js'
+import MainScreen from './components/main/main.js'
+import ProfileScreen from './components/profile/profile.js'
 
-// Instruct SplashScreen not to hide yet, we want to do this manually
-SplashScreen.preventAutoHideAsync().catch(() => {
-  /* reloading the app might trigger some race conditions, ignore them */
-});
+const Stack = createNativeStackNavigator()
 
-export default function App() {
-  return (
-    <AnimatedAppLoader image={{ uri: Constants.manifest.splash.image }}>
-      <MainScreen />
-    </AnimatedAppLoader>
-  );
-}
+export default function App({ navigation }) {
+    const [loading, setLoading] = useState(false)
 
-function AnimatedAppLoader({ children, image }) {
-  const [isSplashReady, setSplashReady] = useState(false);
+    setTimeout(() => {
+        setLoading(true)
+    }, 3000)
 
-  useEffect(() => {
-    async function prepare() {
-      await Asset.fromURI(image.uri).downloadAsync();
-      setSplashReady(true);
-    }
-
-    prepare();
-  }, [image]);
-
-  if (!isSplashReady) {
-    return null;
-  }
-
-  return <AnimatedSplashScreen image={image}>{children}</AnimatedSplashScreen>;
-}
-
-function AnimatedSplashScreen({ children, image }) {
-  const animation = useMemo(() => new Animated.Value(1), []);
-  const [isAppReady, setAppReady] = useState(false);
-  const [isSplashAnimationComplete, setAnimationComplete] = useState(false);
-
-  useEffect(() => {
-    if (isAppReady) {
-      Animated.timing(animation, {
-        toValue: 0,
-        duration: 1000,
-        useNativeDriver: true,
-      }).start(() => setAnimationComplete(true));
-    }
-  }, [isAppReady]);
-
-  const onImageLoaded = useCallback(async () => {
-    try {
-      await SplashScreen.hideAsync();
-      // Load stuff
-      await Promise.all([]);
-    } catch (e) {
-      // handle errors
-    } finally {
-      setAppReady(true);
-    }
-  }, []);
-
-  return (
-    <View style={{ flex: 1 }}>
-      {isAppReady && children}
-      {!isSplashAnimationComplete && (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            StyleSheet.absoluteFill,
-            {
-              backgroundColor: Constants.manifest.splash.backgroundColor,
-              opacity: animation,
-            },
-          ]}
+    return (
+        <AnimatedSplash
+            translucent={true}
+            isLoaded={loading}
+            logoImage={require('./assets/pump.png')}
+            backgroundColor={'#D36727'}
+            logoHeight={250}
+            logoWidth={250}
+            component={<Loader></Loader>}
         >
-          <Animated.Image
-            style={{
-              width: "100%",
-              height: "100%",
-              resizeMode: Constants.manifest.splash.resizeMode || "contain",
-              transform: [
-                {
-                  scale: animation,
-                },
-              ],
-            }}
-            source={image}
-            onLoadEnd={onImageLoaded}
-            fadeDuration={0}
-          />
-        </Animated.View>
-      )}
-    </View>
-  );
+            <NavigationContainer>
+                <Stack.Navigator
+                    screenOptions={{
+                        headerShown: false,
+                    }}
+                >
+                    <Stack.Screen name="Main" component={MainScreen} />
+                    <Stack.Screen name="Profile" component={ProfileScreen} />
+                </Stack.Navigator>
+            </NavigationContainer>
+        </AnimatedSplash>
+    )
 }
 
-function MainScreen() {
-  const onReloadPress = useCallback(() => {
-    if (Platform.OS === "web") {
-      location.reload();
-    } else {
-      Updates.reloadAsync();
-    }
-  }, []);
-
-  return (
-    <View
-      style={{
+const styles = StyleSheet.create({
+    container: {
         flex: 1,
-        backgroundColor: "plum",
-        alignItems: "center",
-        justifyContent: "center",
-      }}
-    >
-      <Text
-        style={{
-          color: "black",
-          fontSize: 30,
-          marginBottom: 15,
-          fontWeight: "bold",
-        }}
-      >
-        Pretty Cool!
-      </Text>
-      <Button title="Run Again" onPress={onReloadPress} />
-    </View>
-  );
-}
+        backgroundColor: '#fff',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+})
+
+registerRootComponent(App)
